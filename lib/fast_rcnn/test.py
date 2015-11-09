@@ -20,6 +20,8 @@ import heapq
 from utils.blob import im_list_to_blob
 import os
 
+from IPython import embed
+
 def _get_image_blob(im):
     """Converts an image into a network input.
 
@@ -154,6 +156,7 @@ def im_detect(net, im, boxes=None):
         forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
     blobs_out = net.forward(**forward_kwargs)
 
+    embed()
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
         rois = net.blobs['rois'].data.copy()

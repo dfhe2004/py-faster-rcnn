@@ -12,6 +12,7 @@ assert sizeof(int) == sizeof(np.int32_t)
 
 cdef extern from "gpu_nms.hpp":
     void _nms(np.int32_t*, int*, np.float32_t*, int, int, float, int)
+    #void _nms(int*, int*, const float*, int, int, float, int)
 
 def gpu_nms(np.ndarray[np.float32_t, ndim=2] dets, np.float thresh,
             np.int32_t device_id=0):
