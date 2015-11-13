@@ -14,6 +14,7 @@ See README.md for installation instructions before running.
 """
 
 import _init_paths
+
 from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
 from fast_rcnn.nms_wrapper import nms
@@ -23,6 +24,9 @@ import numpy as np
 import scipy.io as sio
 import caffe, os, sys, cv2
 import argparse
+
+from IPython import embed
+embed()
 
 CLASSES = ('__background__',
            'aeroplane', 'bicycle', 'bird', 'boat',
@@ -106,13 +110,16 @@ def parse_args():
                         help='Use CPU mode (overrides --gpu)',
                         action='store_true')
     parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16]',
-                        choices=NETS.keys(), default='vgg16')
+                        choices=NETS.keys(), default='zf') #'vgg16')
 
     args = parser.parse_args()
 
     return args
 
 if __name__ == '__main__':
+    import  logging
+    logging.basicConfig(format="%(asctime)s %(levelname)-8s | %(message)s",level=logging.DEBUG, datefmt='%m-%d %H:%M')
+    
     cfg.TEST.HAS_RPN = True  # Use RPN for proposals
 
     args = parse_args()
@@ -126,14 +133,21 @@ if __name__ == '__main__':
         raise IOError(('{:s} not found.\nDid you run ./data/script/'
                        'fetch_faster_rcnn_models.sh?').format(caffemodel))
 
-    if args.cpu_mode:
+
+    caffe.io.caffemodel_to_bin(caffemodel)
+    embed()
+
+    if 0 and args.cpu_mode:
         caffe.set_mode_cpu()
     else:
         caffe.set_mode_gpu()
         caffe.set_device(args.gpu_id)
-        cfg.GPU_ID = args.gpu_id
-    net = caffe.Net(prototxt, caffemodel, caffe.TEST)
 
+    
+    net = caffe.Net(prototxt, caffe.TEST)
+    embed()
+    
+    net.py_copy_from(caffemodel)
     print '\n\nLoaded network {:s}'.format(caffemodel)
 
     # Warmup on a dummy image
@@ -143,6 +157,8 @@ if __name__ == '__main__':
 
     im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
                 '001763.jpg', '004545.jpg']
+    im_names = [ 'gray_%s'% e for e in im_names]
+
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
         print 'Demo for data/demo/{}'.format(im_name)
