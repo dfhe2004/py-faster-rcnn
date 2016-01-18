@@ -13,7 +13,6 @@ layer {
 }
 
 #========= conv1-conv5 ============
-
 layer {
 	name: "conv1"
 	type: "Convolution"
@@ -31,13 +30,6 @@ layer {
 	}
 }
 layer {
-	name: "relu1"
-	type: "ReLU"
-	bottom: "conv1"
-	top: "conv1"
-}
-## BN
-layer {
   name: "conv1_bn"
   bottom: "conv1"
   top: "conv1_bn"
@@ -48,22 +40,15 @@ layer {
   #weight_decay: 0
   #weight_decay: 0
 }
-#layer {
-#	name: "norm1"
-#	type: "LRN"
-#	bottom: "conv1"
-#	top: "norm1"
-#	lrn_param {
-#		local_size: 3
-#		alpha: 0.00005
-#		beta: 0.75
-#		norm_region: WITHIN_CHANNEL
-#	}
-#}
+layer {
+	name: "relu1"
+	type: "ReLU"
+	bottom: "conv1_bn"
+	top: "conv1_bn"
+}
 layer {
 	name: "pool1"
 	type: "Pooling"
-	#bottom: "norm1"
 	bottom: "conv1_bn"
 	top: "pool1"
 	pooling_param {
@@ -90,12 +75,6 @@ layer {
 	}
 }
 layer {
-	name: "relu2"
-	type: "ReLU"
-	bottom: "conv2"
-	top: "conv2"
-}
-layer {
   name: "conv2_bn"
   bottom: "conv2"
   top: "conv2_bn"
@@ -106,22 +85,15 @@ layer {
   #weight_decay: 0
   #weight_decay: 0
 }
-#layer {
-#	name: "norm2"
-#	type: "LRN"
-#	bottom: "conv2"
-#	top: "norm2"
-#	lrn_param {
-#		local_size: 3
-#		alpha: 0.00005
-#		beta: 0.75
-#		norm_region: WITHIN_CHANNEL
-#	}
-#}
+layer {
+	name: "relu2"
+	type: "ReLU"
+	bottom: "conv2_bn"
+	top: "conv2_bn"
+}
 layer {
 	name: "pool2"
 	type: "Pooling"
-	#bottom: "norm2"
 	bottom: "conv2_bn"
 	top: "pool2"
 	pooling_param {
@@ -148,12 +120,6 @@ layer {
 	}
 }
 layer {
-	name: "relu3"
-	type: "ReLU"
-	bottom: "conv3"
-	top: "conv3"
-}
-layer {
   name: "conv3_bn"
   bottom: "conv3"
   top: "conv3_bn"
@@ -163,6 +129,12 @@ layer {
   #blobs_lr: 1
   #weight_decay: 0
   #weight_decay: 0
+}
+layer {
+	name: "relu3"
+	type: "ReLU"
+	bottom: "conv3_bn"
+	top: "conv3_bn"
 }
 layer {
 	name: "conv4"
@@ -181,12 +153,6 @@ layer {
 	}
 }
 layer {
-	name: "relu4"
-	type: "ReLU"
-	bottom: "conv4"
-	top: "conv4"
-}
-layer {
   name: "conv4_bn"
   bottom: "conv4"
   top: "conv4_bn"
@@ -196,6 +162,12 @@ layer {
   #blobs_lr: 1
   #weight_decay: 0
   #weight_decay: 0
+}
+layer {
+	name: "relu4"
+	type: "ReLU"
+	bottom: "conv4_bn"
+	top: "conv4_bn"
 }
 
 layer {
@@ -215,18 +187,28 @@ layer {
 	}
 }
 layer {
+  name: "conv5_bn"
+  bottom: "conv5"
+  top: "conv5_bn"
+  type: "BatchNorm"
+  #param { lr_mult: 0 decay_mult: 0 }
+  #blobs_lr: 1
+  #blobs_lr: 1
+  #weight_decay: 0
+  #weight_decay: 0
+}
+layer {
 	name: "relu5"
 	type: "ReLU"
-	bottom: "conv5"
-	top: "conv5"
+	bottom: "conv5_bn"
+	top: "conv5_bn"
 }
 
 #========= RPN ============
-
 layer {
   name: "rpn_conv1"
   type: "Convolution"
-  bottom: "conv5"
+  bottom: "conv5_bn"
   top: "rpn_conv1"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
@@ -238,15 +220,27 @@ layer {
   }
 }
 layer {
+  name: "rpn_conv1_bn"
+  bottom: "rpn_conv1"
+  top: "rpn_conv1_bn"
+  type: "BatchNorm"
+  #param { lr_mult: 0 decay_mult: 0 }
+  #blobs_lr: 1
+  #blobs_lr: 1
+  #weight_decay: 0
+  #weight_decay: 0
+}
+
+layer {
   name: "rpn_relu1"
   type: "ReLU"
-  bottom: "rpn_conv1"
-  top: "rpn_conv1"
+  bottom: "rpn_conv1_bn"
+  top: "rpn_conv1_bn"
 }
 layer {
   name: "rpn_cls_score"
   type: "Convolution"
-  bottom: "rpn_conv1"
+  bottom: "rpn_conv1_bn"
   top: "rpn_cls_score"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
@@ -257,10 +251,11 @@ layer {
     bias_filler { type: "constant" value: 0 }
   }
 }
+
 layer {
   name: "rpn_bbox_pred"
   type: "Convolution"
-  bottom: "rpn_conv1"
+  bottom: "rpn_conv1_bn"
   top: "rpn_bbox_pred"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
@@ -271,6 +266,8 @@ layer {
     bias_filler { type: "constant" value: 0 }
   }
 }
+
+
 layer {
    bottom: "rpn_cls_score"          # (b, 2*A, h, w)
    top: "rpn_cls_score_reshape"     # (b, 2, A*h, w)
