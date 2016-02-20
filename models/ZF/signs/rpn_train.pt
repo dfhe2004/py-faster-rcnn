@@ -8,7 +8,7 @@ layer {
   python_param {
     module: 'sarpoint.cnn.roi_data_layer'
     layer: 'RpnRoIDataLayer'
-    param_str: '{"num_classes": 2, "im_size":[4,512,512] }'
+    param_str: '{"num_classes": 2, "im_size":[2,512,512] }'
   }
 }
 
@@ -202,7 +202,7 @@ layer {
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
-    num_output: 24   # 2(bg/fg) * 3*4(anchors); 3asp. * 4sacle ;  
+    num_output: 32   # 2(bg/fg) * 4*4(anchors); 4asp. * 4sacle ;  
     kernel_size: 1 pad: 0 stride: 1
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
@@ -216,7 +216,7 @@ layer {
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
-    num_output: 48   # 4 * 3*4(anchors)
+    num_output: 64   # 4 * 4*4(anchors)
     kernel_size: 1 pad: 0 stride: 1
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
@@ -243,7 +243,7 @@ layer {
   python_param {
     module: 'sarpoint.cnn.anchor_target_layer'
     layer: 'AnchorTargetLayer'
-    param_str: '{"feat_stride": 16,"anchor_size":32, "anchor_ratios":[0.75,1,1.33], "anchor_scales": [0.75,1,1.4,2] }'
+    param_str: '{"feat_stride": 16,"anchor_size":16, "anchor_ratios":[0.5,1,2,4], "anchor_scales": [1,2,4,8] }'
   }
 }
 layer {

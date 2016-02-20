@@ -226,6 +226,6 @@ layer {
   python_param {
     module: 'sarpoint.cnn.proposal_layer'
     layer: 'ProposalLayer'
-    param_str: '{"feat_stride": 16,"anchor_size":32, "anchor_ratios":[0.75,1,1.33], "anchor_scales": [0.75,1,1.4,2],"margin":0.166 }'
+    param_str: '{"feat_stride": 16,"anchor_size":32, "anchor_ratios":[0.75,1,1.33], "anchor_scales": [0.75,1,1.4,2],"margin":0.12 }'
   }
 }
