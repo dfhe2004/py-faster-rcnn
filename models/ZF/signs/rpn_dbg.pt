@@ -1,0 +1,347 @@
+name: "ZF"
+
+input: "data"
+input_shape {
+  dim: 1
+  dim: 2        #<-- gray 
+  dim: 512
+  dim: 512
+}
+
+input: "im_info"
+input_shape {
+  dim: 1
+  dim: 3
+}
+
+input: "bbox_gt"
+input_shape {
+  dim: 1
+  dim: 5
+}
+
+
+
+# ------------------------ layer 1 -----------------------------
+layer {
+	name: "conv1"
+	type: "Convolution"
+	bottom: "data"
+	top: "conv1"
+	convolution_param {
+		num_output: 96
+		kernel_size: 7
+		pad: 3
+		stride: 2
+	}
+}
+layer {
+	name: "relu1"
+	type: "ReLU"
+	bottom: "conv1"
+	top: "conv1"
+}
+layer {
+	name: "norm1"
+	type: "LRN"
+	bottom: "conv1"
+	top: "norm1"
+	lrn_param {
+		local_size: 3
+		alpha: 0.00005
+		beta: 0.75
+		norm_region: WITHIN_CHANNEL
+	}
+}
+layer {
+	name: "pool1"
+	type: "Pooling"
+	bottom: "norm1"
+	top: "pool1"
+	pooling_param {
+		kernel_size: 3
+		stride: 2
+		pad: 1
+		pool: MAX
+	}
+}
+layer {
+	name: "conv2"
+	type: "Convolution"
+	bottom: "pool1"
+	top: "conv2"
+	convolution_param {
+		num_output: 256
+		kernel_size: 5
+		pad: 2
+		stride: 2
+	}
+}
+layer {
+	name: "relu2"
+	type: "ReLU"
+	bottom: "conv2"
+	top: "conv2"
+}
+
+layer {
+	name: "norm2"
+	type: "LRN"
+	bottom: "conv2"
+	top: "norm2"
+	lrn_param {
+		local_size: 3
+		alpha: 0.00005
+		beta: 0.75
+		norm_region: WITHIN_CHANNEL
+	}
+}
+layer {
+	name: "pool2"
+	type: "Pooling"
+	bottom: "norm2"
+	top: "pool2"
+	pooling_param {
+		kernel_size: 3
+		stride: 2
+		pad: 1
+		pool: MAX
+	}
+}
+layer {
+	name: "conv3"
+	type: "Convolution"
+	bottom: "pool2"
+	top: "conv3"
+	convolution_param {
+		num_output: 384
+		kernel_size: 3
+		pad: 1
+		stride: 1
+	}
+}
+layer {
+	name: "relu3"
+	type: "ReLU"
+	bottom: "conv3"
+	top: "conv3"
+}
+layer {
+	name: "conv4"
+	type: "Convolution"
+	bottom: "conv3"
+	top: "conv4"
+	convolution_param {
+		num_output: 384
+		kernel_size: 3
+		pad: 1
+		stride: 1
+	}
+}
+layer {
+	name: "relu4"
+	type: "ReLU"
+	bottom: "conv4"
+	top: "conv4"
+}
+layer {
+	name: "conv5"
+	type: "Convolution"
+	bottom: "conv4"
+	top: "conv5"
+	convolution_param {
+		num_output: 256
+		kernel_size: 3
+		pad: 1
+		stride: 1
+	}
+}
+layer {
+	name: "relu5"
+	type: "ReLU"
+	bottom: "conv5"
+	top: "conv5"
+}
+
+#-----------------------dbg layer-------------------------
+layer {
+  name: "roi_pool_1"
+  type: "ROIPooling"
+  bottom: 'pool1'
+  bottom: "bbox_gt"
+  top: "roi_pool_1"
+  propagate_down: 0
+  propagate_down: 0
+  roi_pooling_param {
+    pooled_w: 1
+    pooled_h: 1
+    spatial_scale: 0.25 # 1/16
+  }
+}
+
+
+layer {
+  name: "roi_pool_2"
+  type: "ROIPooling"
+  bottom: 'pool2'
+  bottom: "bbox_gt"
+  top: "roi_pool_2"
+  propagate_down: 0
+  propagate_down: 0
+  roi_pooling_param {
+    pooled_w: 2
+    pooled_h: 2
+    spatial_scale: 0.0625 # 1/16
+  }
+}
+
+layer {
+  name: "roi_pool_5"
+  type: "ROIPooling"
+  bottom: 'conv5'
+  bottom: "bbox_gt"
+  top: "roi_pool_5"
+  propagate_down: 0
+  propagate_down: 0
+  roi_pooling_param {
+    pooled_w: 1
+    pooled_h: 1
+    spatial_scale: 0.0625 # 1/16
+  }
+}
+
+
+layer {
+    name: "roi_flatten_1"
+    type: "Flatten"
+    bottom: "roi_pool_1"
+    top: "roi_pool_flatten_1"
+}
+
+
+layer {
+    name: "roi_flatten_2"
+    type: "Flatten"
+    bottom: "roi_pool_2"
+    top: "roi_pool_flatten_2"
+}
+
+layer {
+    name: "roi_flatten_5"
+    type: "Flatten"
+    bottom: "roi_pool_5"
+    top: "roi_pool_flatten_5"
+}
+
+
+layer {
+    name: "feature"
+    type: "Concat"
+    concat_param{
+        concat_dim: 1
+    }
+    bottom: "roi_pool_flatten_1"
+    bottom: "roi_pool_flatten_2"
+    bottom: "roi_pool_flatten_5"
+    top: "feature"
+}
+
+layer {
+  name: 'debug'
+  type: 'Python'
+  bottom: 'feature'
+#  bottom: 'pool2'
+#  bottom: 'conv3'
+#  bottom: 'conv4'
+#  bottom: 'conv5'
+  top: '_skip'
+  python_param {
+    module: 'sarpoint.cnn.dbg_layer'
+    layer: 'DebugLayer'
+    #param_str: '{"fname": "F:/workspace/signs/LRT_34A_28A/dbg/features", "total": 29790 }'
+    param_str: '{"fname": "F:/workspace/signs/LRT_34A_28A/dbg/fp_features", "total": 89 }'
+  }
+}
+
+layer {
+  name: "dbg_silence"
+  type: "Silence"
+  bottom: "_skip"
+}
+
+
+#-----------------------layer +-------------------------
+layer {
+  name: "rpn_conv1"
+  type: "Convolution"
+  bottom: "conv5"
+  top: "rpn_conv1"
+  convolution_param {
+    num_output: 256
+    kernel_size: 3 pad: 1 stride: 1
+  }
+}
+layer {
+  name: "rpn_relu1"
+  type: "ReLU"
+  bottom: "rpn_conv1"
+  top: "rpn_conv1"
+}
+layer {
+  name: "rpn_cls_score"
+  type: "Convolution"
+  bottom: "rpn_conv1"
+  top: "rpn_cls_score"
+  convolution_param {
+    num_output: 32   # 2(bg/fg) * 4*4(anchors)
+    kernel_size: 1 pad: 0 stride: 1
+  }
+}
+layer {
+  name: "rpn_bbox_pred"
+  type: "Convolution"
+  bottom: "rpn_conv1"
+  top: "rpn_bbox_pred"
+  convolution_param {
+    num_output: 64   # 4 * 4*4(anchors)
+    kernel_size: 1 pad: 0 stride: 1
+  }
+}
+layer {
+   bottom: "rpn_cls_score"
+   top: "rpn_cls_score_reshape"
+   name: "rpn_cls_score_reshape"
+   type: "Reshape"
+   reshape_param { shape { dim: 0 dim: 2 dim: -1 dim: 0 } } #(b, 2, A*h, w)
+}
+
+#-----------------------output------------------------
+layer {
+  name: "rpn_cls_prob"
+  type: "Softmax"
+  bottom: "rpn_cls_score_reshape"
+  top: "rpn_cls_prob"
+}
+layer {
+  name: 'rpn_cls_prob_reshape'
+  type: 'Reshape'
+  bottom: 'rpn_cls_prob'            # (b,   2, A*h, w)
+  top: 'rpn_cls_prob_reshape'       # (b, 2*A,   h, w)
+  reshape_param { shape { dim: 0 dim: 32 dim: -1 dim: 0 } } 
+}
+layer {
+  name: 'proposal'
+  type: 'Python'
+  bottom: 'rpn_cls_prob_reshape'
+  bottom: 'rpn_bbox_pred'
+  bottom: 'im_info'
+  top: 'rois'
+  top: 'scores'
+  python_param {
+    module: 'sarpoint.cnn.proposal_layer'
+    layer: 'ProposalLayer'
+    #param_str: '{"feat_stride": 16,"anchor_size":32, "anchor_ratios":[0.75,1,1.33], "anchor_scales": [0.75,1,1.4,2],"margin":0.12 }'
+    param_str: '{"feat_stride": 16,"anchor_size":16, "anchor_ratios":[0.5,1,2,4], "anchor_scales": [1,2,4,8] }'
+
+  }
+}
