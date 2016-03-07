@@ -175,50 +175,35 @@ layer {
 
 
 #--- seg layer
-layer {
-  name: "roi_pool_1"
-  type: "ROIPooling"
-  bottom: 'data'
-  bottom: "gt_boxes"
-  top: "roi_data"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 1
-  }
-}
+#layer {
+#  name: "roi_pool_1"
+#  type: "ROIPooling"
+#  bottom: 'pool1'
+#  bottom: "gt_boxes"
+#  top: "roi_pool_1"
+#  propagate_down: 0
+#  propagate_down: 0
+#  roi_pooling_param {
+#    pooled_w: 16
+#    pooled_h: 16
+#    spatial_scale: 0.25 # 1/16
+#  }
+#}
 
-layer {
-  name: "roi_pool_1"
-  type: "ROIPooling"
-  bottom: 'pool1'
-  bottom: "gt_boxes"
-  top: "roi_pool_1"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 0.25 # 1/16
-  }
-}
-
-layer {
-  name: "roi_pool_2"
-  type: "ROIPooling"
-  bottom: 'pool2'
-  bottom: "gt_boxes"
-  top: "roi_pool_2"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 0.0625 # 1/16
-  }
-}
+#layer {
+#  name: "roi_pool_2"
+#  type: "ROIPooling"
+#  bottom: 'pool2'
+#  bottom: "gt_boxes"
+#  top: "roi_pool_2"
+#  propagate_down: 0
+#  propagate_down: 0
+#  roi_pooling_param {
+#    pooled_w: 16
+#    pooled_h: 16
+#    spatial_scale: 0.0625 # 1/16
+#  }
+#}
 
 layer {
   name: "roi_pool_5"
@@ -229,66 +214,114 @@ layer {
   propagate_down: 0
   propagate_down: 0
   roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
+    pooled_w: 5
+    pooled_h: 5
     spatial_scale: 0.0625 # 1/16
   }
 }
 
-layer {
-    name: "seg"
-    type: "Concat"
-    concat_param{
-        concat_dim: 1
-    }
-    bottom: "roi_data"
-    bottom: "roi_pool_1"
-    bottom: "roi_pool_2"
-    bottom: "roi_pool_5"
-    top: "seg"
-}
+#layer {
+#    name: "seg"
+#    type: "Concat"
+#    concat_param{
+#        concat_dim: 1
+#    }
+#    bottom: "roi_pool_1"
+#    bottom: "roi_pool_2"
+#    bottom: "roi_pool_5"
+#    top: "seg"
+#}
+
+
+
 
 layer {
-  name: "seg_conv1"
-  type: "Convolution"
-  bottom: "seg"
-  top: "seg_conv1"
+  name: "seg_fc1"
+  type: "InnerProduct"
+  bottom: "roi_pool_5"
+  top: "seg_fc1"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
-  propagate_down: 0                 # disable bp
-  convolution_param {
-    num_output: 128
-    kernel_size: 1 pad: 0 stride: 1
-    weight_filler { type: "gaussian" std: 0.01 }
-    bias_filler { type: "constant" value: 0 }
+  inner_product_param {
+    num_output: 2048
   }
 }
 layer {
   name: "seg_relu1"
   type: "ReLU"
-  bottom: "seg_conv1"
-  top: "seg_conv1"
+  bottom: "seg_fc1"
+  top: "seg_fc1"
 }
 layer {
-  name: "seg_cls"
-  type: "Convolution"
-  bottom: "seg_conv1"
-  top: "seg_cls"
+  name: "seg_drop1"
+  type: "Dropout"
+  bottom: "seg_fc1"
+  top: "seg_fc1"
+  dropout_param {
+    dropout_ratio: 0.5
+    scale_train: false
+  }
+}
+layer {
+  name: "seg_fc2"
+  type: "InnerProduct"
+  bottom: "seg_fc1"
+  top: "seg_fc2"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
-  convolution_param {
-    num_output:  2     # 2(bg/fg) * 4*4(anchors); 4asp. * 4sacle ;  
-    kernel_size: 1 pad: 0 stride: 1
-    weight_filler { type: "gaussian" std: 0.01 }
-    bias_filler { type: "constant" value: 0 }
+  inner_product_param {
+    num_output: 2048
+  }
+}
+layer {
+  name: "seg_relu2"
+  type: "ReLU"
+  bottom: "seg_fc2"
+  top: "seg_fc2"
+}
+layer {
+  name: "seg_drop2"
+  type: "Dropout"
+  bottom: "seg_fc2"
+  top: "seg_fc2"
+  dropout_param {
+    dropout_ratio: 0.5
+    scale_train: false
   }
 }
 
+layer {
+  name: "seg_cls"
+  type: "InnerProduct"
+  bottom: "seg_fc2"
+  top: "seg_cls"
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+   name: "seg_cls_reshape"
+   type: "Reshape"
+   bottom: "seg_cls"
+   top: "seg_cls_reshape"
+   reshape_param { shape { dim: -1 dim: 2 dim: 256 } } #(b, 2, A*h, w)
+}
 
 layer {
   name: "seg_cls_loss"
   type: "SoftmaxWithLoss"
-  bottom: "seg_cls"   
+  bottom: "seg_cls_reshape"   
   bottom: "pixels"              
   propagate_down: 1
   propagate_down: 0                 # bp skip bottom[1]: pixels

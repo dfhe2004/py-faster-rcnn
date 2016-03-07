@@ -178,21 +178,6 @@ layer {
 layer {
   name: "roi_pool_1"
   type: "ROIPooling"
-  bottom: 'data'
-  bottom: "gt_boxes"
-  top: "roi_data"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 1
-  }
-}
-
-layer {
-  name: "roi_pool_1"
-  type: "ROIPooling"
   bottom: 'pool1'
   bottom: "gt_boxes"
   top: "roi_pool_1"
@@ -241,7 +226,6 @@ layer {
     concat_param{
         concat_dim: 1
     }
-    bottom: "roi_data"
     bottom: "roi_pool_1"
     bottom: "roi_pool_2"
     bottom: "roi_pool_5"
