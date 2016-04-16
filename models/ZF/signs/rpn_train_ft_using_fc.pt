@@ -1,14 +1,12 @@
-name: "ZF"
+name: "ZF-Ft"
 layer {
   name: 'input-data'
   type: 'Python'
   top: 'data'
-  #top: 'im_info'
-  top: 'gt_boxes'
-  top: 'pixels'
+  top: 'labels'
   python_param {
     module: 'sarpoint.cnn.roi_data_layer'
-    layer: 'SegRoIDataLayer'
+    layer: 'FtRoiDataLayer'
     param_str: '{"num_classes": 2, "im_size":[2,512,512] }'
   }
 }
@@ -173,126 +171,115 @@ layer {
 	top: "conv5"
 }
 
-
-#--- seg layer
+#========= filter ============
 layer {
-  name: "roi_data"
-  type: "ROIPooling"
-  bottom: 'data'
-  bottom: "gt_boxes"
-  top: "roi_data"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 1
-  }
-}
-
-#layer {
-#  name: "roi_pool_1"
-#  type: "ROIPooling"
-#  bottom: 'pool1'
-#  bottom: "gt_boxes"
-#  top: "roi_pool_1"
-#  propagate_down: 0
-#  propagate_down: 0
-#  roi_pooling_param {
-#    pooled_w: 16
-#    pooled_h: 16
-#    spatial_scale: 0.25 # 1/16
-#  }
-#}
-
-#layer {
-#  name: "roi_pool_2"
-#  type: "ROIPooling"
-#  bottom: 'pool2'
-#  bottom: "gt_boxes"
-#  top: "roi_pool_2"
-#  propagate_down: 0
-#  propagate_down: 0
-#  roi_pooling_param {
-#    pooled_w: 16
-#    pooled_h: 16
-#    spatial_scale: 0.0625 # 1/16
-#  }
-#}
-
-layer {
-  name: "roi_pool_5"
-  type: "ROIPooling"
-  bottom: 'conv5'
-  bottom: "gt_boxes"
-  top: "roi_pool_5"
-  propagate_down: 0
-  propagate_down: 0
-  roi_pooling_param {
-    pooled_w: 16
-    pooled_h: 16
-    spatial_scale: 0.0625 # 1/16
-  }
-}
-
-layer {
-    name: "seg"
-    type: "Concat"
-    concat_param{
-        concat_dim: 1
-    }
-    bottom: "roi_data"
-    #bottom: "roi_pool_1"
-    #bottom: "roi_pool_2"
-    bottom: "roi_pool_5"
-    top: "seg"
-}
-
-layer {
-  name: "seg_conv1"
+  name: "ft_conv/3x3"
   type: "Convolution"
-  bottom: "seg"
-  top: "seg_conv1"
+  bottom: "conv5"
+  top: "ft/output"
+  #propagate_down: 0             # using old data
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
-  propagate_down: 0                 # disable bp
   convolution_param {
     num_output: 128
-    kernel_size: 1 pad: 0 stride: 1
+    kernel_size: 3 pad: 1 stride: 1
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
   }
 }
 layer {
-  name: "seg_relu1"
+  name: "ft_relu/3x3"
   type: "ReLU"
-  bottom: "seg_conv1"
-  top: "seg_conv1"
+  bottom: "ft/output"
+  top: "ft/output"
 }
+
 layer {
-  name: "seg_cls"
-  type: "Convolution"
-  bottom: "seg_conv1"
-  top: "seg_cls"
+  name: "ft_fc6"
+  type: "InnerProduct"
+  bottom: "ft/output"
+  top: "ft/fc6"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
-  convolution_param {
-    num_output:  2     # 2(bg/fg) * 4*4(anchors); 4asp. * 4sacle ;  
-    kernel_size: 1 pad: 0 stride: 1
+  inner_product_param {
+    num_output: 512
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
   }
 }
-
+layer {
+  name: "ft_relu6"
+  type: "ReLU"
+  bottom: "ft/fc6"
+  top: "ft/fc6"
+}
+layer {
+  name: "ft_drop6"
+  type: "Dropout"
+  bottom: "ft/fc6"
+  top: "ft/fc6"
+  dropout_param {
+    dropout_ratio: 0.5
+    scale_train: true #false
+  }
+}
+layer {
+  name: "ft_fc7"
+  type: "InnerProduct"
+  bottom: "ft/fc6"
+  top: "ft/fc7"
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
+  inner_product_param {
+    num_output: 128
+    weight_filler { type: "gaussian" std: 0.01 }
+    bias_filler { type: "constant" value: 0 }
+  }
+}
+layer {
+  name: "ft_relu7"
+  type: "ReLU"
+  bottom: "ft/fc7"
+  top: "ft/fc7"
+}
+layer {
+  name: "ft_drop7"
+  type: "Dropout"
+  bottom: "ft/fc7"
+  top: "ft/fc7"
+  dropout_param {
+    dropout_ratio: 0.5
+    scale_train: true #false
+  }
+}
+layer {
+  name: "cls_score"
+  type: "InnerProduct"
+  bottom: "ft/fc7"
+  top: "cls_score"
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
 
 layer {
-  name: "seg_cls_loss"
+  name: "loss_cls"
   type: "SoftmaxWithLoss"
-  bottom: "seg_cls"   
-  bottom: "pixels"              
+  bottom: "cls_score"
+  bottom: "labels"
   propagate_down: 1
-  propagate_down: 0                 # bp skip bottom[1]: pixels
-  top: "seg_cls_loss"
+  propagate_down: 0
+  top: "cls_loss"
   loss_weight: 1
   loss_param {
     ignore_label: -1
