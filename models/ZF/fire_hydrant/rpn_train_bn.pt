@@ -1,4 +1,4 @@
-name: "ZF"
+name: "ZF-BN"
 layer {
   name: 'input-data'
   type: 'Python'
@@ -14,20 +14,42 @@ layer {
 
 #========= conv1-conv5 ============
 layer {
-	name: "conv1"
-	type: "Convolution"
-	bottom: "data"
-	top: "conv1"
+    name: "conv1"
+    type: "Convolution"
+    bottom: "data"
+    top: "conv1"
     #param { lr_mult: 0 decay_mult: 0 }
     #param { lr_mult: 0 decay_mult: 0 }
     param { lr_mult: 1.0 }
-	param { lr_mult: 2.0 }	
+	#param { lr_mult: 2.0 }	
     convolution_param {
 		num_output: 96
 		kernel_size: 7
 		pad: 3
-		stride: 2
+		stride: 2               #<-- change from 2 to 1
+        bias_term: false
+        weight_filler { type: "gaussian" std: 0.01 }
+        #bias_filler { type: "constant" value: 0 }
 	}
+}
+layer {
+  name: "conv1_bn"
+  bottom: "conv1"
+  top: "conv1"
+  type: "BatchNorm"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+}
+layer {
+  name: "conv1_bn/scale"
+  bottom: "conv1"
+  top: "conv1"
+  type: "Scale"
+  scale_param{
+    #axis: 1
+    bias_term: true
+  }
 }
 layer {
 	name: "relu1"
@@ -36,21 +58,9 @@ layer {
 	top: "conv1"
 }
 layer {
-	name: "norm1"
-	type: "LRN"
-	bottom: "conv1"
-	top: "norm1"
-	lrn_param {
-		local_size: 3
-		alpha: 0.00005
-		beta: 0.75
-		norm_region: WITHIN_CHANNEL
-	}
-}
-layer {
 	name: "pool1"
 	type: "Pooling"
-	bottom: "norm1"
+	bottom: "conv1"
 	top: "pool1"
 	pooling_param {
 		kernel_size: 3
@@ -59,6 +69,7 @@ layer {
 		pool: MAX
 	}
 }
+
 layer {
 	name: "conv2"
 	type: "Convolution"
@@ -67,13 +78,35 @@ layer {
     #param { lr_mult: 0 decay_mult: 0 }
     #param { lr_mult: 0 decay_mult: 0 }
     param { lr_mult: 1.0 }
-	param { lr_mult: 2.0 }	
+	#param { lr_mult: 2.0 }	
     convolution_param {
 		num_output: 256
 		kernel_size: 5
 		pad: 2
 		stride: 2
+        bias_term: false
+        weight_filler { type: "gaussian" std: 0.01 }
+        #bias_filler { type: "constant" value: 0 }
 	}
+}
+layer {
+  name: "conv2_bn"
+  bottom: "conv2"
+  top: "conv2"
+  type: "BatchNorm"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+}
+layer {
+  name: "conv2_bn/scale"
+  bottom: "conv2"
+  top: "conv2"
+  type: "Scale"
+  scale_param{
+    #axis: 1
+    bias_term: true
+  }
 }
 layer {
 	name: "relu2"
@@ -82,21 +115,9 @@ layer {
 	top: "conv2"
 }
 layer {
-	name: "norm2"
-	type: "LRN"
-	bottom: "conv2"
-	top: "norm2"
-	lrn_param {
-		local_size: 3
-		alpha: 0.00005
-		beta: 0.75
-		norm_region: WITHIN_CHANNEL
-	}
-}
-layer {
 	name: "pool2"
 	type: "Pooling"
-	bottom: "norm2"
+	bottom: "conv2"
 	top: "pool2"
 	pooling_param {
 		kernel_size: 3
@@ -113,13 +134,35 @@ layer {
     #param { lr_mult: 0 decay_mult: 0 }
     #param { lr_mult: 0 decay_mult: 0 }
     param { lr_mult: 1.0 }
-	param { lr_mult: 2.0 }	
+	#param { lr_mult: 2.0 }	
 	convolution_param {
 		num_output: 384
 		kernel_size: 3
 		pad: 1
 		stride: 1
+        bias_term: false
+        weight_filler { type: "gaussian" std: 0.01 }
+        #bias_filler { type: "constant" value: 0 }
 	}
+}
+layer {
+  name: "conv3_bn"
+  bottom: "conv3"
+  top: "conv3"
+  type: "BatchNorm"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+}
+layer {
+  name: "conv3_bn/scale"
+  bottom: "conv3"
+  top: "conv3"
+  type: "Scale"
+  scale_param{
+    #axis: 1
+    bias_term: true
+  }
 }
 layer {
 	name: "relu3"
@@ -135,13 +178,35 @@ layer {
     #param { lr_mult: 0 decay_mult: 0 }
     #param { lr_mult: 0 decay_mult: 0 }
     param { lr_mult: 1.0 }
-	param { lr_mult: 2.0 }	
+	#param { lr_mult: 2.0 }	
 	convolution_param {
 		num_output: 384
 		kernel_size: 3
 		pad: 1
 		stride: 1
+        bias_term: false
+        weight_filler { type: "gaussian" std: 0.01 }
+        #bias_filler { type: "constant" value: 0 }
 	}
+}
+layer {
+  name: "conv4_bn"
+  bottom: "conv4"
+  top: "conv4"
+  type: "BatchNorm"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+}
+layer {
+  name: "conv4_bn/scale"
+  bottom: "conv4"
+  top: "conv4"
+  type: "Scale"
+  scale_param{
+    #axis: 1
+    bias_term: true
+  }
 }
 layer {
 	name: "relu4"
@@ -157,13 +222,35 @@ layer {
     #param { lr_mult: 0 decay_mult: 0 }
     #param { lr_mult: 0 decay_mult: 0 }
     param { lr_mult: 1.0 }
-	param { lr_mult: 2.0 }	
+	#param { lr_mult: 2.0 }	
 	convolution_param {
 		num_output: 256
 		kernel_size: 3
 		pad: 1
 		stride: 1
+        bias_term: false
+        weight_filler { type: "gaussian" std: 0.01 }
+        #bias_filler { type: "constant" value: 0 }
 	}
+}
+layer {
+  name: "conv5_bn"
+  bottom: "conv5"
+  top: "conv5"
+  type: "BatchNorm"
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+  param { lr_mult: 0 decay_mult: 0 }
+}
+layer {
+  name: "conv5_bn/scale"
+  bottom: "conv5"
+  top: "conv5"
+  type: "Scale"
+  scale_param{
+    #axis: 1
+    bias_term: true
+  }
 }
 layer {
 	name: "relu5"
@@ -173,7 +260,6 @@ layer {
 }
 
 #========= RPN ============
-
 layer {
   name: "rpn_conv1"
   type: "Convolution"
@@ -202,7 +288,7 @@ layer {
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
-    num_output: 32   # 2(bg/fg) * 4*4(anchors); 4asp. * 4sacle ;  
+    num_output:  32   # 2(bg/fg) * 4*4(anchors); 4asp. * 4sacle ;  
     kernel_size: 1 pad: 0 stride: 1
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
@@ -216,7 +302,7 @@ layer {
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
-    num_output: 64   # 4 * 4*4(anchors)
+    num_output:  64   # 4 * 4*4(anchors)
     kernel_size: 1 pad: 0 stride: 1
     weight_filler { type: "gaussian" std: 0.01 }
     bias_filler { type: "constant" value: 0 }
@@ -243,7 +329,8 @@ layer {
   python_param {
     module: 'sarpoint.cnn.anchor_target_layer'
     layer: 'AnchorTargetLayer'
-    param_str: '{"feat_stride": 16,"anchor_size":16, "anchor_ratios":[0.5,1,2,4], "anchor_scales": [1,2,4,8] }'
+    #param_str: '{"feat_stride": 16,"anchor_size":32, "anchor_ratios":[0.75,1,1.33], "anchor_scales": [0.75,1,1.4,2] }'
+    param_str: '{"feat_stride": 16,"anchor_size": 12, "anchor_ratios":[1, 1.3, 1.7, 2.2], "anchor_scales": [1,2,4,6] }'
   }
 }
 layer {
