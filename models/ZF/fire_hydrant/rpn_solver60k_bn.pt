@@ -1,4 +1,4 @@
-train_net: "models/ZF/signs/rpn_train_bn.pt"
+train_net: "models/ZF/fire_hydrant/rpn_train_bn.pt"
 
 #base_lr: 0.001
 #lr_policy: "step"
@@ -23,7 +23,7 @@ display: 100
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "zf_signs_rpn"
+snapshot_prefix: "zf_fire_hydrant_rpn"
 
 
 
